@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Birmingham Corps — Charts Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f4f6fa;color:#1a1a2e;font-size:14px}
+.topbar{background:#0a1628;color:#fff;padding:14px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.topbar-left{display:flex;align-items:center;gap:14px}
+.logo{width:40px;height:40px;background:#c0392b;border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px}
+.org-name{font-size:17px;font-weight:700}
+.org-sub{font-size:10px;color:#8a9bb0;letter-spacing:1px;text-transform:uppercase}
+.nav{display:flex;gap:2px;padding:0 28px;background:#162342;border-bottom:1px solid rgba(255,255,255,.07);overflow-x:auto}
+.nav-btn{padding:12px 18px;background:none;border:none;color:#8a9bb0;font-size:13px;font-weight:600;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all .2s}
+.nav-btn:hover{color:#fff}
+.nav-btn.active{color:#fff;border-bottom-color:#c0392b}
+.nav-btn.gold.active{border-bottom-color:#d4a843}
+.main{padding:24px 28px 60px;max-width:1400px;margin:0 auto}
+.panel{display:none}.panel.active{display:block}
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px}
+.kpi{background:#fff;border-radius:12px;padding:18px;border:1px solid #e8edf3}
+.kpi-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#8a9bb0;margin-bottom:8px}
+.kpi-val{font-size:30px;font-weight:800;color:#0a1628;line-height:1}
+.kpi-sub{font-size:11px;color:#8a9bb0;margin-top:5px}
+.kpi.red .kpi-val{color:#c0392b}
+.kpi.gold .kpi-val{color:#d4a843}
+.kpi.green .kpi-val{color:#27ae60}
+.kpi.blue .kpi-val{color:#2980b9}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px}
+.charts-grid.three{grid-template-columns:1fr 1fr 1fr}
+.chart-box{background:#fff;border-radius:12px;padding:20px;border:1px solid #e8edf3}
+.chart-box.full{grid-column:1/-1}
+.chart-title{font-size:14px;font-weight:700;color:#0a1628;margin-bottom:2px}
+.chart-sub{font-size:11px;color:#8a9bb0;margin-bottom:14px}
+.legend{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:10px;font-size:11px;color:#8a9bb0}
+.legend span{display:flex;align-items:center;gap:5px}
+.dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.section-head{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:#8a9bb0;font-weight:700;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid #e8edf3}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#8a9bb0;padding:0 10px 10px;border-bottom:1px solid #e8edf3;font-weight:600}
+td{padding:10px;font-size:13px;border-bottom:1px solid #f0f2f5;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#fafbfc}
+.pill{display:inline-block;padding:3px 10px;border-radius:99px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.pill-green{background:#eafaf1;color:#27ae60}
+.pill-amber{background:#fef9e7;color:#f39c12}
+.pill-red{background:#fdf2f1;color:#c0392b}
+.pill-blue{background:#eaf4fb;color:#2980b9}
+.pill-gray{background:#f4f6f9;color:#8a9bb0}
+.pill-gold{background:#fdf6e3;color:#d4a843}
+.form-section{background:#fff;border-radius:12px;padding:24px;border:1px solid #e8edf3;margin-bottom:16px}
+.form-title{font-size:15px;font-weight:700;margin-bottom:4px;color:#0a1628}
+.form-desc{font-size:12px;color:#8a9bb0;margin-bottom:18px;line-height:1.6}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-grid.three{grid-template-columns:1fr 1fr 1fr}
+.field{display:flex;flex-direction:column;gap:6px}
+.field.full{grid-column:1/-1}
+label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#8a9bb0;font-weight:600}
+input[type=text],input[type=date],input[type=number],select,textarea{width:100%;background:#f8f9fc;border:1px solid #e0e6ee;border-radius:8px;color:#1a1a2e;font-size:13px;padding:10px 13px;outline:none;font-family:inherit;transition:border-color .2s}
+input:focus,select:focus,textarea:focus{border-color:#2980b9;background:#fff}
+select option{background:#fff}
+textarea{resize:vertical;min-height:72px}
+.submit-btn{margin-top:16px;background:#0a1628;color:#fff;border:none;border-radius:8px;padding:11px 24px;font-size:13px;font-weight:700;cursor:pointer;transition:background .2s}
+.submit-btn:hover{background:#162342}
+.submit-btn.gold{background:#d4a843;color:#0a1628}
+.submit-btn.gold:hover{background:#f0c860}
+.success-toast{display:none;background:#eafaf1;border:1px solid #a9dfbf;color:#1e8449;border-radius:8px;padding:10px 14px;font-size:12px;margin-top:10px;font-weight:600}
+.gform-table-wrap{background:#fff;border-radius:12px;border:1px solid #e8edf3;margin-bottom:16px;overflow:hidden}
+.gform-table-head{background:#0a1628;padding:14px 20px}
+.gform-table-title{color:#d4a843;font-size:13px;font-weight:700}
+.gform-table-sub{color:#8a9bb0;font-size:11px;margin-top:2px}
+.step-list{display:flex;flex-direction:column;gap:14px;margin-top:16px}
+.step{display:flex;gap:14px;align-items:flex-start}
+.step-num{width:28px;height:28px;border-radius:50%;background:#0a1628;color:#d4a843;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.step-body{font-size:13px;line-height:1.7;color:#1a1a2e}
+.step-body strong{font-weight:700}
+.alert-box{padding:14px 18px;border-radius:10px;font-size:12px;line-height:1.6;margin-bottom:14px}
+.alert-blue{background:#eaf4fb;border:1px solid #aed6f1;color:#1a5276}
+.alert-gold{background:#fdf6e3;border:1px solid #f9e4a0;color:#7d6608}
+.alert-green{background:#eafaf1;border:1px solid #a9dfbf;color:#1e8449}
+.progress-bar-wrap{background:#f0f2f5;border-radius:99px;height:8px;margin-top:6px}
+.progress-bar{height:8px;border-radius:99px}
+.compliance-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.comp-item{background:#f8f9fc;border-radius:8px;padding:12px 14px;border-left:3px solid #d4a843}
+.comp-rule{font-size:11px;font-weight:700;color:#0a1628;text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+.comp-val{font-size:12px;color:#555}
+@media(max-width:768px){.charts-grid,.charts-grid.three,.form-grid,.form-grid.three{grid-template-columns:1fr}.compliance-grid{grid-column:1fr}.main{padding:14px 12px 60px}.field.full{grid-column:1}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo">BC</div>
+    <div>
+      <div class="org-name">Birmingham Corps</div>
+      <div class="org-sub">Workforce &amp; Job Placement Dashboard</div>
+    </div>
+  </div>
+  <div style="font-size:11px;color:#8a9bb0" id="liveclock"></div>
+</div>
+
+<nav class="nav">
+  <button class="nav-btn active" onclick="tab('overview',this)">Overview</button>
+  <button class="nav-btn gold" onclick="tab('americorps',this)">AmeriCorps</button>
+  <button class="nav-btn" onclick="tab('placement',this)">Job Placement</button>
+  <button class="nav-btn" onclick="tab('coaching',this)">Coaching &amp; Cohorts</button>
+  <button class="nav-btn" onclick="tab('resume',this)">Resume &amp; Interview</button>
+  <button class="nav-btn" onclick="tab('addentry',this)">➕ Add Entry</button>
+  <button class="nav-btn" onclick="tab('gforms',this)">Google Forms Setup</button>
+</nav>
+
+<main class="main">
+
+<!-- ═══ OVERVIEW ═══ -->
+<div class="panel active" id="panel-overview">
+  <div class="kpi-row">
+    <div class="kpi gold"><div class="kpi-label">AmeriCorps Members</div><div class="kpi-val" id="k-members">12</div><div class="kpi-sub">Active this term</div></div>
+    <div class="kpi red"><div class="kpi-label">Job Placements YTD</div><div class="kpi-val" id="k-placements">47</div><div class="kpi-sub">Goal: 60</div></div>
+    <div class="kpi gold"><div class="kpi-label">Hours Logged</div><div class="kpi-val" id="k-hours">14,280</div><div class="kpi-sub">of 20,400 goal</div></div>
+    <div class="kpi green"><div class="kpi-label">90-Day Retention</div><div class="kpi-val" id="k-retention">83%</div><div class="kpi-sub">Goal: 80%</div></div>
+    <div class="kpi blue"><div class="kpi-label">Clients Served</div><div class="kpi-val" id="k-clients">128</div><div class="kpi-sub">YTD total</div></div>
+    <div class="kpi"><div class="kpi-label">Active Cohorts</div><div class="kpi-val" id="k-cohorts">6</div><div class="kpi-sub">Running now</div></div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-box">
+      <div class="chart-title">Placements by sector</div>
+      <div class="chart-sub">Job placements logged YTD by industry</div>
+      <div class="legend">
+        <span><span class="dot" style="background:#185FA5"></span>Healthcare</span>
+        <span><span class="dot" style="background:#3B6D11"></span>Financial</span>
+        <span><span class="dot" style="background:#BA7517"></span>Logistics</span>
+        <span><span class="dot" style="background:#534AB7"></span>Gov/Nonprofit</span>
+        <span><span class="dot" style="background:#888780"></span>Other</span>
+      </div>
+      <div style="position:relative;height:210px"><canvas id="c-sector"></canvas></div>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">Goals progress</div>
+      <div class="chart-sub">% of annual target reached per goal area</div>
+      <div style="position:relative;height:230px"><canvas id="c-goals"></canvas></div>
+    </div>
+    <div class="chart-box full">
+      <div class="chart-title">Monthly trend — placements &amp; service hours</div>
+      <div class="chart-sub">Program year September 2024 — present</div>
+      <div class="legend">
+        <span><span class="dot" style="background:#185FA5"></span>Placements</span>
+        <span><span class="dot" style="background:#3B6D11"></span>Hours logged (÷100)</span>
+      </div>
+      <div style="position:relative;height:220px"><canvas id="c-trend"></canvas></div>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">Member hour completion</div>
+      <div class="chart-sub">% of 1,700-hr requirement per member</div>
+      <div style="position:relative;height:230px"><canvas id="c-member-pct"></canvas></div>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">Cohort outcomes</div>
+      <div class="chart-sub">Enrolled vs. placed per cohort</div>
+      <div class="legend">
+        <span><span class="dot" style="background:#185FA5"></span>Enrolled</span>
+        <span><span class="dot" style="background:#3B6D11"></span>Placed</span>
+      </div>
+      <div style="position:relative;height:230px"><canvas id="c-cohort-ov"></canvas></div>
+    </div>
+  </div>
+
+  <div class="chart-box">
+    <div class="chart-title">Recent activity log</div>
+    <div class="chart-sub">Latest entries from both managers. Add entries in the Add Entry tab.</div>
+    <table id="activity-tbl">
+      <thead><tr><th>Date</th><th>Staff</th><th>Program</th><th>Activity</th><th>Status</th></tr></thead>
+      <tbody id="activity-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ AMERICORPS ═══ -->
+<div class="panel" id="panel-americorps">
+  <div class="section-head">Workforce Manager View — AmeriCorps Program</div>
+  <div class="kpi-row">
+    <div class="kpi gold"><div class="kpi-label">Active Members</div><div class="kpi-val">12</div><div class="kpi-sub">Full-time this term</div></div>
+    <div class="kpi gold"><div class="kpi-label">Total Hours</div><div class="kpi-val">14,280</div><div class="kpi-sub">of 20,400 goal (70%)</div></div>
+    <div class="kpi red"><div class="kpi-label">Members At Risk</div><div class="kpi-val">3</div><div class="kpi-sub">Below required pace</div></div>
+    <div class="kpi"><div class="kpi-label">Evals Due</div><div class="kpi-val" style="color:#f39c12">8</div><div class="kpi-sub">Mid-term pending</div></div>
+    <div class="kpi green"><div class="kpi-label">Direct Svc Avg</div><div class="kpi-val">83%</div><div class="kpi-sub">Goal: ≥ 80%</div></div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-box full">
+      <div class="chart-title">Member hours — logged vs. remaining</div>
+      <div class="chart-sub">Stacked bar shows progress toward 1,700-hour requirement. Red = at risk (below 60% pace).</div>
+      <div style="position:relative;height:260px"><canvas id="c-member-detail"></canvas></div>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">Direct service vs. training split</div>
+      <div class="chart-sub">Must be ≥ 80% direct, ≤ 20% training</div>
+      <div style="position:relative;height:230px"><canvas id="c-svc-split"></canvas></div>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">Evaluation status</div>
+      <div class="chart-sub">Mid-term evaluation required for all active members</div>
+      <div style="position:relative;height:230px"><canvas id="c-evals"></canvas></div>
+    </div>
+  </div>
+
+  <div class="chart-box" style="margin-bottom:16px">
+    <div class="chart-title" style="margin-bottom:14px">Compliance quick reference</div>
+    <div class="compliance-grid">
+      <div class="comp-item"><div class="comp-rule">Full-time term</div><div class="comp-val">1,700 hours minimum · Must complete within 12 months</div></div>
+      <div class="comp-item"><div class="comp-rule">Direct service requirement</div><div class="comp-val">≥ 80% of total service hours must be direct service</div></div>
+      <div class="comp-item"><div class="comp-rule">Training / education cap</div><div class="comp-val">≤ 20% of total hours may be training or education</div></div>
+      <div class="comp-item"><div class="comp-rule">Fundraising cap</div><div class="comp-val">≤ 10% of total hours may be fundraising activity</div></div>
+      <div class="comp-item"><div class="comp-rule">Living allowance (2024)</div><div class="comp-val">Max $18,700 · Paid in equal installments · Not a wage</div></div>
+      <div class="comp-item"><div class="comp-rule">Segal Education Award</div><div class="comp-val">Issued upon successful completion · Taxable when used</div></div>
+      <div class="comp-item"><div class="comp-rule">Evaluation requirement</div><div class="comp-val">Mid-term + End-of-term required per 45 CFR § 2522</div></div>
+      <div class="comp-item"><div class="comp-rule">Exit window</div><div class="comp-val">Members must be exited within 30 days of term end</div></div>
+      <div class="comp-item"><div class="comp-rule">Criminal history check</div><div class="comp-val">National Service Criminal History Check required before service</div></div>
+      <div class="comp-item"><div class="comp-rule">Match req. (years 1–3)</div><div class="comp-val">24% grantee share required for cost reimbursement grants</div></div>
+    </div>
+  </div>
+
+  <div class="chart-box">
+    <div class="chart-title" style="margin-bottom:12px">Member roster — current status</div>
+    <table>
+      <thead><tr><th>Member</th><th>Hours Logged</th><th>% Complete</th><th>Direct Svc</th><th>Training</th><th>Mid-Term Eval</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Nia Robinson</strong></td><td>1,240</td><td>73%<div class="progress-bar-wrap"><div class="progress-bar" style="width:73%;background:#d4a843"></div></div></td><td>84%</td><td>16%</td><td><span class="pill pill-blue">Done</span></td><td><span class="pill pill-green">On Track</span></td></tr>
+        <tr><td><strong>Marcus Tillman</strong></td><td>890</td><td style="color:#c0392b">52% ⚠<div class="progress-bar-wrap"><div class="progress-bar" style="width:52%;background:#c0392b"></div></div></td><td>81%</td><td>19%</td><td><span class="pill pill-amber">Pending</span></td><td><span class="pill pill-red">At Risk</span></td></tr>
+        <tr><td><strong>Destiny Ware</strong></td><td>1,180</td><td>69%<div class="progress-bar-wrap"><div class="progress-bar" style="width:69%;background:#d4a843"></div></div></td><td>86%</td><td>14%</td><td><span class="pill pill-blue">Done</span></td><td><span class="pill pill-green">On Track</span></td></tr>
+        <tr><td><strong>Jalen Brooks</strong></td><td>740</td><td style="color:#c0392b">44% ⚠<div class="progress-bar-wrap"><div class="progress-bar" style="width:44%;background:#c0392b"></div></div></td><td>79%</td><td>21%</td><td><span class="pill pill-red">Overdue</span></td><td><span class="pill pill-red">At Risk</span></td></tr>
+        <tr><td><strong>Tamika Owens</strong></td><td>1,380</td><td>81%<div class="progress-bar-wrap"><div class="progress-bar" style="width:81%;background:#27ae60"></div></div></td><td>88%</td><td>12%</td><td><span class="pill pill-blue">Done</span></td><td><span class="pill pill-green">On Track</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ JOB PLACEMENT ═══ -->
+<div class="panel" id="panel-placement">
+  <div class="section-head">Job Placement Manager View</div>
+  <div class="kpi-row">
+    <div class="kpi red"><div class="kpi-label">Total Placements</div><div class="kpi-val">47</div><div class="kpi-sub">Goal: 60 (78%)</div></div>
+    <div class="kpi gold"><div class="kpi-label">Avg Starting Wage</div><div class="kpi-val">$17.40</div><div class="kpi-sub">Per hour at hire</div></div>
+    <div class="kpi green"><div class="kpi-label">90-Day Retained</div><div class="kpi-val">39</div><div class="kpi-sub">83% retention rate</div></div>
+    <div class="kpi blue"><div class="kpi-label">Employer Partners</div><div class="kpi-val">19</div><div class="kpi-sub">Active relationships</div></div>
+    <div class="kpi"><div class="kpi-label">Active Pipeline</div><div class="kpi-val">23</div><div class="kpi-sub">Job-seekers active</div></div>
+  </div>
+  <div class="charts-grid three">
+    <div class="chart-box">
+      <div class="chart-title">Placements by pathway</div>
+      <div class="chart-sub">Which program led to the placement</div>
+      <div style="position:relative;height:220px"><canvas id="c-pathway"></canvas></div>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">Retention milestones</div>
+      <div class="chart-sub">Where placed clients stand today</div>
+      <div style="position:relative;height:220px"><canvas id="c-retention"></canvas></div>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">Placements by sector</div>
+      <div class="chart-sub">Industry breakdown</div>
+      <div style="position:relative;height:220px"><canvas id="c-sector2"></canvas></div>
+    </div>
+  </div>
+  <div class="chart-box">
+    <div class="chart-title" style="margin-bottom:12px">Recent placements</div>
+    <table>
+      <thead><tr><th>Client</th><th>Employer</th><th>Title</th><th>Wage</th><th>Date</th><th>Retained</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Alicia M.</strong></td><td>UAB Health System</td><td>Patient Rep.</td><td>$18/hr</td><td>Mar 28</td><td><span class="pill pill-gold">New</span></td></tr>
+        <tr><td><strong>DeShawn T.</strong></td><td>Regions Bank</td><td>Teller</td><td>$16.50/hr</td><td>Mar 21</td><td><span class="pill pill-blue">30-Day ✓</span></td></tr>
+        <tr><td><strong>Monica J.</strong></td><td>Amazon BHM</td><td>Associate</td><td>$19/hr</td><td>Mar 10</td><td><span class="pill pill-blue">30-Day ✓</span></td></tr>
+        <tr><td><strong>Keisha W.</strong></td><td>Blue Cross Blue Shield</td><td>Claims Coord.</td><td>$20/hr</td><td>Feb 14</td><td><span class="pill pill-green">90-Day ✓</span></td></tr>
+        <tr><td><strong>Jerome P.</strong></td><td>City of Birmingham</td><td>Parks Staff</td><td>$15/hr</td><td>Jan 30</td><td><span class="pill pill-green">90-Day ✓</span></td></tr>
+        <tr><td><strong>Tanya R.</strong></td><td>Grandview Medical</td><td>Admin Coordinator</td><td>$17.50/hr</td><td>Jan 15</td><td><span class="pill pill-green">90-Day ✓</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ COACHING & COHORTS ═══ -->
+<div class="panel" id="panel-coaching">
+  <div class="section-head">Job Placement Manager — 1:1 Coaching &amp; Talent Navigator Cohorts</div>
+  <div class="kpi-row">
+    <div class="kpi blue"><div class="kpi-label">Active Clients</div><div class="kpi-val">34</div><div class="kpi-sub">In coaching pipeline</div></div>
+    <div class="kpi"><div class="kpi-label">Sessions This Month</div><div class="kpi-val">89</div><div class="kpi-sub">Attendance: 92%</div></div>
+    <div class="kpi green"><div class="kpi-label">Active Cohorts</div><div class="kpi-val">6</div><div class="kpi-sub">2 graduating soon</div></div>
+    <div class="kpi red"><div class="kpi-label">Cohort Placements</div><div class="kpi-val">29</div><div class="kpi-sub">From cohorts YTD</div></div>
+    <div class="kpi gold"><div class="kpi-label">Avg Completion Rate</div><div class="kpi-val">78%</div><div class="kpi-sub">Across all cohorts</div></div>
+  </div>
+  <div class="charts-grid">
+    <div class="chart-box">
+      <div class="chart-title">Client pipeline status</div>
+      <div class="chart-sub">Where coaching clients are right now</div>
+      <div style="position:relative;height:230px"><canvas id="c-coaching-status"></canvas></div>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">Cohort enrolled vs. placed</div>
+      <div class="chart-sub">Outcomes by cohort</div>
+      <div class="legend">
+        <span><span class="dot" style="background:#185FA5"></span>Enrolled</span>
+        <span><span class="dot" style="background:#3B6D11"></span>Placed</span>
+        <span><span class="dot" style="background:#BA7517"></span>Dropped</span>
+      </div>
+      <div style="position:relative;height:230px"><canvas id="c-cohort-detail"></canvas></div>
+    </div>
+  </div>
+  <div class="chart-box">
+    <div class="chart-title" style="margin-bottom:12px">Cohort roster</div>
+    <table>
+      <thead><tr><th>Cohort</th><th>Focus Track</th><th>Start</th><th>End</th><th>Enrolled</th><th>Active</th><th>Placed</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Cohort 5-A</strong></td><td>Healthcare Support</td><td>Feb 3</td><td>May 2</td><td>18</td><td>16</td><td>4</td><td><span class="pill pill-blue">In Progress</span></td></tr>
+        <tr><td><strong>Cohort 5-B</strong></td><td>Financial Services</td><td>Feb 10</td><td>May 9</td><td>14</td><td>13</td><td>2</td><td><span class="pill pill-blue">In Progress</span></td></tr>
+        <tr><td><strong>Cohort 4-A</strong></td><td>Retail Management</td><td>Oct 7</td><td>Jan 10</td><td>16</td><td>13</td><td>11</td><td><span class="pill pill-green">Graduated</span></td></tr>
+        <tr><td><strong>Cohort 4-B</strong></td><td>Logistics / Warehouse</td><td>Oct 14</td><td>Jan 17</td><td>14</td><td>12</td><td>9</td><td><span class="pill pill-green">Graduated</span></td></tr>
+        <tr><td><strong>Cohort 3-A</strong></td><td>General Employment</td><td>Jul 8</td><td>Oct 4</td><td>15</td><td>12</td><td>8</td><td><span class="pill pill-green">Graduated</span></td></tr>
+        <tr><td><strong>Cohort 3-B</strong></td><td>Customer Service</td><td>Jul 15</td><td>Oct 11</td><td>12</td><td>10</td><td>7</td><td><span class="pill pill-green">Graduated</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ RESUME & INTERVIEW ═══ -->
+<div class="panel" id="panel-resume">
+  <div class="section-head">Job Placement Manager — Resume &amp; Interview Skills</div>
+  <div class="kpi-row">
+    <div class="kpi"><div class="kpi-label">Workshops Done</div><div class="kpi-val">7</div><div class="kpi-sub">Goal: 10</div></div>
+    <div class="kpi blue"><div class="kpi-label">Total Participants</div><div class="kpi-val">63</div><div class="kpi-sub">Across all workshops</div></div>
+    <div class="kpi gold"><div class="kpi-label">Mock Interviews</div><div class="kpi-val">41</div><div class="kpi-sub">Completed YTD</div></div>
+    <div class="kpi green"><div class="kpi-label">Satisfaction</div><div class="kpi-val">88%</div><div class="kpi-sub">Average rating</div></div>
+  </div>
+  <div class="charts-grid">
+    <div class="chart-box">
+      <div class="chart-title">Workshop attendance per session</div>
+      <div class="chart-sub">Participants at each workshop held this year</div>
+      <div style="position:relative;height:230px"><canvas id="c-workshops"></canvas></div>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">Session types breakdown</div>
+      <div class="chart-sub">Total sessions by workshop category</div>
+      <div style="position:relative;height:230px"><canvas id="c-wtypes"></canvas></div>
+    </div>
+  </div>
+  <div class="chart-box">
+    <div class="chart-title" style="margin-bottom:12px">Workshop history</div>
+    <table>
+      <thead><tr><th>Workshop</th><th>Type</th><th>Date</th><th>Participants</th><th>Facilitator</th><th>Rating</th><th>Certs</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Resume Bootcamp #7</strong></td><td>Resume Building</td><td>Mar 25</td><td>14</td><td>Staff</td><td>★★★★★</td><td><span class="pill pill-green">Yes</span></td></tr>
+        <tr><td><strong>Interview Day #4</strong></td><td>Mock Interview</td><td>Mar 12</td><td>11</td><td>Staff + Volunteers</td><td>★★★★☆</td><td><span class="pill pill-gray">No</span></td></tr>
+        <tr><td><strong>LinkedIn Lab #2</strong></td><td>Digital Presence</td><td>Feb 26</td><td>9</td><td>Staff</td><td>★★★★☆</td><td><span class="pill pill-green">Yes</span></td></tr>
+        <tr><td><strong>Employer Panel #3</strong></td><td>Employer Panel</td><td>Feb 11</td><td>22</td><td>Multiple Employers</td><td>★★★★★</td><td><span class="pill pill-green">Yes</span></td></tr>
+        <tr><td><strong>Resume Bootcamp #6</strong></td><td>Resume Building</td><td>Jan 28</td><td>7</td><td>Staff</td><td>★★★☆☆</td><td><span class="pill pill-green">Yes</span></td></tr>
+        <tr><td><strong>Professional Dress</strong></td><td>Workplace Etiquette</td><td>Jan 14</td><td>16</td><td>Staff + Partner</td><td>★★★★★</td><td><span class="pill pill-gray">No</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ ADD ENTRY ═══ -->
+<div class="panel" id="panel-addentry">
+  <div class="alert-box alert-blue" style="margin-bottom:20px">
+    Use these forms to log new data every day. When you connect these to Google Forms (see the Google Forms Setup tab), every submission goes straight to your Google Sheet and updates all charts automatically.
+  </div>
+
+  <div class="form-section">
+    <div class="form-title">Log AmeriCorps Service Hours</div>
+    <div class="form-desc">Workforce Manager · Required for compliance tracking and member education award eligibility · Supervisor must confirm hours</div>
+    <div class="form-grid">
+      <div class="field"><label>Member Name</label><input type="text" placeholder="Full name"></div>
+      <div class="field"><label>Service Date</label><input type="date"></div>
+      <div class="field"><label>Hours Served Today</label><input type="number" placeholder="e.g. 8" min="0" max="24"></div>
+      <div class="field"><label>Hour Type</label>
+        <select><option>Direct Service (counts toward 80% minimum)</option><option>Training / Education (max 20%)</option><option>Fundraising (max 10%)</option></select>
+      </div>
+      <div class="field full"><label>Activity Description</label><textarea placeholder="Describe the service activity performed. Be specific — this goes in the compliance record."></textarea></div>
+      <div class="field"><label>Supervisor Initials</label><input type="text" placeholder="Confirms timesheet"></div>
+      <div class="field"><label>Member Status</label>
+        <select><option>On Track</option><option>At Risk — Needs Makeup Hours</option><option>Suspended</option><option>Released for Cause</option><option>Released — Compelling Circumstances</option></select>
+      </div>
+      <div class="field full"><label>Additional Notes</label><textarea placeholder="Any issues, absences, or flags to note..."></textarea></div>
+    </div>
+    <button class="submit-btn gold" onclick="save(this,'ac-hours')">Save Hour Log Entry</button>
+    <div class="success-toast" id="toast-ac-hours">Hour entry saved. This will appear in the AmeriCorps member tracker.</div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-title">Log Job Placement</div>
+    <div class="form-desc">Job Placement Manager · One entry per confirmed job placement · This feeds the placement charts</div>
+    <div class="form-grid">
+      <div class="field"><label>Client Name</label><input type="text" placeholder="Full name"></div>
+      <div class="field"><label>Placement Date</label><input type="date"></div>
+      <div class="field"><label>Employer Name</label><input type="text" placeholder="Company or organization"></div>
+      <div class="field"><label>Job Title</label><input type="text" placeholder="Position title"></div>
+      <div class="field"><label>Starting Wage</label><input type="text" placeholder="e.g. $17.50/hr or $36,000/yr"></div>
+      <div class="field"><label>Employment Type</label>
+        <select><option>Full-Time</option><option>Part-Time</option><option>Contract</option><option>Apprenticeship</option><option>Temp-to-Hire</option></select>
+      </div>
+      <div class="field"><label>Industry Sector</label>
+        <select><option>Healthcare</option><option>Financial Services</option><option>Logistics / Warehouse</option><option>Manufacturing</option><option>Retail / Hospitality</option><option>Construction / Trades</option><option>Technology</option><option>Government / Nonprofit</option><option>Other</option></select>
+      </div>
+      <div class="field"><label>Benefits Included?</label>
+        <select><option>Yes — Full Benefits</option><option>Yes — Partial Benefits</option><option>No Benefits</option></select>
+      </div>
+      <div class="field"><label>Pathway Used</label>
+        <select><option>1:1 Coaching</option><option>Talent Navigator Cohort</option><option>Resume Workshop</option><option>Job Fair / Event</option><option>Direct Referral</option></select>
+      </div>
+      <div class="field"><label>Retention Status</label>
+        <select><option>New — Pending 30-Day Check</option><option>Yes — Retained at 30 Days</option><option>Yes — Retained at 90 Days</option><option>No — Left Position</option></select>
+      </div>
+      <div class="field full"><label>Notes</label><textarea placeholder="Context, employer partner notes, client background..."></textarea></div>
+    </div>
+    <button class="submit-btn" onclick="save(this,'placement')">Save Placement</button>
+    <div class="success-toast" id="toast-placement">Placement saved. The placements chart will reflect this entry.</div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-title">Log 1:1 Coaching Session</div>
+    <div class="form-desc">Job Placement Manager · Log one entry per session immediately after it ends</div>
+    <div class="form-grid">
+      <div class="field"><label>Client Name</label><input type="text" placeholder="Client full name"></div>
+      <div class="field"><label>Session Date</label><input type="date"></div>
+      <div class="field"><label>Session Type</label>
+        <select><option>Initial Assessment</option><option>Goal Setting</option><option>Career Exploration</option><option>Job Search Strategy</option><option>Application Support</option><option>Interview Prep</option><option>Barrier Navigation</option><option>Check-In / Follow-Up</option></select>
+      </div>
+      <div class="field"><label>Duration (minutes)</label><input type="number" placeholder="e.g. 45"></div>
+      <div class="field full"><label>Session Notes</label><textarea placeholder="Key discussion points, progress made, barriers identified..."></textarea></div>
+      <div class="field full"><label>Action Items / Next Steps</label><textarea placeholder="What does the client need to do before the next session?"></textarea></div>
+      <div class="field"><label>Next Session Date</label><input type="date"></div>
+      <div class="field"><label>Barriers Identified</label>
+        <select><option>None</option><option>Transportation</option><option>Childcare</option><option>Housing Instability</option><option>Digital Access</option><option>Work History Gaps</option><option>Multiple Barriers</option></select>
+      </div>
+      <div class="field"><label>Client Status</label>
+        <select><option>Active — On Track</option><option>Active — Needs Support</option><option>Interviewing</option><option>Placed</option><option>Disengaged</option><option>On Hold</option></select>
+      </div>
+      <div class="field"><label>Follow-Up Needed?</label>
+        <select><option>No</option><option>Yes — within 48 hrs</option><option>Yes — within 1 week</option></select>
+      </div>
+    </div>
+    <button class="submit-btn" onclick="save(this,'coaching')">Save Session Notes</button>
+    <div class="success-toast" id="toast-coaching">Session saved. Client record updated.</div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-title">Log Cohort Participant Update</div>
+    <div class="form-desc">Job Placement Manager · Update a participant's status after each module or milestone</div>
+    <div class="form-grid">
+      <div class="field"><label>Participant Name</label><input type="text" placeholder="Full name"></div>
+      <div class="field"><label>Cohort</label>
+        <select><option>Cohort 5-A — Spring (Healthcare)</option><option>Cohort 5-B — Spring (Financial)</option><option>Cohort 6 — Summer (Upcoming)</option></select>
+      </div>
+      <div class="field"><label>Update Date</label><input type="date"></div>
+      <div class="field"><label>Status</label>
+        <select><option>Active</option><option>At Risk</option><option>On Hold</option><option>Dropped</option><option>Completed Program</option><option>Placed After Cohort</option></select>
+      </div>
+      <div class="field"><label>Modules Completed (count)</label><input type="number" placeholder="e.g. 3 of 6" min="0" max="6"></div>
+      <div class="field"><label>Attendance Rate</label>
+        <select><option>100%</option><option>90–99%</option><option>75–89%</option><option>Below 75%</option></select>
+      </div>
+      <div class="field full"><label>Notes / Barriers</label><textarea placeholder="Transportation, childcare, housing, engagement issues..."></textarea></div>
+    </div>
+    <button class="submit-btn" onclick="save(this,'cohort')">Save Cohort Update</button>
+    <div class="success-toast" id="toast-cohort">Cohort participant record updated.</div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-title">Log Resume / Interview Workshop</div>
+    <div class="form-desc">Job Placement Manager · Log after every workshop or mock interview session</div>
+    <div class="form-grid three">
+      <div class="field"><label>Workshop Name</label><input type="text" placeholder="e.g. Resume Bootcamp #8"></div>
+      <div class="field"><label>Date</label><input type="date"></div>
+      <div class="field"><label>Participants</label><input type="number" placeholder="# who attended"></div>
+      <div class="field"><label>Type</label>
+        <select><option>Resume Building Workshop</option><option>Mock Interview Session</option><option>Employer Panel</option><option>LinkedIn / Digital Presence</option><option>Professional Dress &amp; Etiquette</option><option>Combined Workshop</option></select>
+      </div>
+      <div class="field"><label>Facilitator</label><input type="text" placeholder="Staff name or partner org"></div>
+      <div class="field"><label>Satisfaction Score</label>
+        <select><option>5 — Excellent</option><option>4 — Good</option><option>3 — Average</option><option>2 — Below Average</option><option>1 — Poor</option></select>
+      </div>
+      <div class="field"><label>Certificates Issued?</label>
+        <select><option>Yes</option><option>No</option></select>
+      </div>
+      <div class="field"><label>Employer Involved?</label>
+        <select><option>No</option><option>Yes</option></select>
+      </div>
+      <div class="field"><label>Location</label><input type="text" placeholder="e.g. Innovation Depot"></div>
+      <div class="field full"><label>Key Outcomes</label><textarea placeholder="What did participants accomplish? Any standout results?"></textarea></div>
+    </div>
+    <button class="submit-btn" onclick="save(this,'workshop')">Save Workshop</button>
+    <div class="success-toast" id="toast-workshop">Workshop saved. Charts updated.</div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-title">Daily Activity Log</div>
+    <div class="form-desc">Both managers · Add at least one entry per workday to keep the activity log current</div>
+    <div class="form-grid">
+      <div class="field"><label>Staff Member</label><input type="text" placeholder="Your name"></div>
+      <div class="field"><label>Date</label><input type="date"></div>
+      <div class="field"><label>Department / Program</label>
+        <select><option>AmeriCorps Program</option><option>Job Placement</option><option>1:1 Coaching</option><option>Talent Navigator / Cohorts</option><option>Resume &amp; Interview Skills</option><option>Partnerships / Outreach</option><option>Financial Stability</option><option>Administration</option></select>
+      </div>
+      <div class="field"><label>Activity Type</label>
+        <select><option>Client Meeting</option><option>Group Session / Workshop</option><option>Data Entry / Reporting</option><option>Employer Outreach</option><option>Compliance / Documentation</option><option>Internal Meeting</option><option>Community Event</option><option>Site Visit</option><option>Other</option></select>
+      </div>
+      <div class="field full"><label>Description</label><textarea placeholder="What did you do? Be specific enough that someone else can follow up."></textarea></div>
+      <div class="field full"><label>Outcome / Result</label><textarea placeholder="What was accomplished? Any follow-up actions needed?"></textarea></div>
+      <div class="field"><label>Follow-Up Needed?</label>
+        <select><option>No</option><option>Yes</option><option>Done</option></select>
+      </div>
+      <div class="field"><label>Status</label>
+        <select><option>Complete</option><option>In Progress</option><option>Pending</option><option>Cancelled</option></select>
+      </div>
+    </div>
+    <button class="submit-btn" onclick="save(this,'activity')">Save Activity Entry</button>
+    <div class="success-toast" id="toast-activity">Activity logged. It will appear in the Overview activity feed.</div>
+  </div>
+</div>
+
+<!-- ═══ GOOGLE FORMS SETUP ═══ -->
+<div class="panel" id="panel-gforms">
+  <div class="alert-box alert-green">
+    <strong>What you will have after this setup:</strong> Five shareable Google Form links your team fills out daily from any device. Every submission saves automatically to one Google Sheet. That sheet powers live charts that update on their own — no manual data entry in the sheet needed.
+  </div>
+
+  <div class="form-section">
+    <div class="form-title">5-Step Setup — Takes About 30 Minutes Total</div>
+    <div class="step-list">
+      <div class="step"><div class="step-num">1</div><div class="step-body"><strong>Go to forms.google.com</strong> and sign into your Google account. Click the large + button to create a new blank form. Repeat this five times — one form per section below.</div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-body"><strong>Copy the questions from each section below</strong> into Google Forms. For each question, paste the title, set the type (Short answer, Paragraph, Dropdown, Date), and mark it Required if shown.</div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-body"><strong>Connect each form to Google Sheets.</strong> Inside the form, click the green Sheets icon at the top → select "Create a new spreadsheet." Name it "Birmingham Corps — [Form Name]." Every submission now saves there automatically in real time.</div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-body"><strong>Get each form's shareable link.</strong> Click Send → the chain-link icon → copy the link. Send that link to your team in a text, email, or pin it in Monday.com. Anyone with the link can fill it out — no Google account needed.</div></div>
+      <div class="step"><div class="step-num">5</div><div class="step-body"><strong>Share your Google Sheet with the team.</strong> Open the connected spreadsheet → click Share → change to "Anyone with the link can edit." Now both managers can view live data, add notes, and see every entry as it comes in.</div></div>
+    </div>
+  </div>
+
+  <div class="alert-box alert-gold">
+    <strong>Pro tip for auto-updating charts:</strong> In your Google Sheet, add a tab called "Summary." Use COUNTIF and SUM formulas there to count placements, hours, etc. Then insert Google Sheets charts from that Summary tab. Every time a form is submitted, the sheet updates and your charts refresh automatically with zero extra work.
+  </div>
+
+  <div class="gform-table-wrap">
+    <div class="gform-table-head"><div class="gform-table-title">Form 1 — AmeriCorps Hour Log</div><div class="gform-table-sub">Workforce Manager uses this daily · Feeds compliance tracking</div></div>
+    <table style="padding:0 16px 16px"><thead><tr><th>#</th><th>Question Title (copy exactly)</th><th>Question Type</th><th>Required?</th></tr></thead><tbody>
+      <tr><td>1</td><td>Member Name</td><td>Short answer</td><td>Yes</td></tr>
+      <tr><td>2</td><td>Service Date</td><td>Date</td><td>Yes</td></tr>
+      <tr><td>3</td><td>Hours Served Today</td><td>Short answer</td><td>Yes</td></tr>
+      <tr><td>4</td><td>Hour Type</td><td>Dropdown — Direct Service / Training or Education / Fundraising</td><td>Yes</td></tr>
+      <tr><td>5</td><td>Activity Description</td><td>Paragraph</td><td>Yes</td></tr>
+      <tr><td>6</td><td>Supervisor Initials</td><td>Short answer</td><td>Yes</td></tr>
+      <tr><td>7</td><td>Current Member Status</td><td>Dropdown — On Track / At Risk / Suspended / Released</td><td>Yes</td></tr>
+      <tr><td>8</td><td>Additional Notes</td><td>Paragraph</td><td>No</td></tr>
+    </tbody></table>
+  </div>
+
+  <div class="gform-table-wrap">
+    <div class="gform-table-head"><div class="gform-table-title">Form 2 — Job Placement Entry</div><div class="gform-table-sub">Job Placement Manager · Log every confirmed placement</div></div>
+    <table style="padding:0 16px 16px"><thead><tr><th>#</th><th>Question Title</th><th>Question Type</th><th>Required?</th></tr></thead><tbody>
+      <tr><td>1</td><td>Client Name</td><td>Short answer</td><td>Yes</td></tr>
+      <tr><td>2</td><td>Placement Date</td><td>Date</td><td>Yes</td></tr>
+      <tr><td>3</td><td>Employer Name</td><td>Short answer</td><td>Yes</td></tr>
+      <tr><td>4</td><td>Job Title</td><td>Short answer</td><td>Yes</td></tr>
+      <tr><td>5</td><td>Starting Wage</td><td>Short answer</td><td>Yes</td></tr>
+      <tr><td>6</td><td>Employment Type</td><td>Dropdown — Full-Time / Part-Time / Contract / Apprenticeship / Temp-to-Hire</td><td>Yes</td></tr>
+      <tr><td>7</td><td>Industry Sector</td><td>Dropdown — Healthcare / Financial Services / Logistics / Manufacturing / Retail / Construction / Technology / Government or Nonprofit / Other</td><td>Yes</td></tr>
+      <tr><td>8</td><td>Benefits Included?</td><td>Dropdown — Full Benefits / Partial Benefits / No Benefits</td><td>Yes</td></tr>
+      <tr><td>9</td><td>Pathway Used</td><td>Dropdown — 1:1 Coaching / Talent Navigator / Resume Workshop / Job Fair / Direct Referral</td><td>Yes</td></tr>
+      <tr><td>10</td><td>Retention Status</td><td>Dropdown — New Pending / Yes 30-Day / Yes 90-Day / No Left Position</td><td>Yes</td></tr>
+      <tr><td>11</td><td>Notes</td><td>Paragraph</td><td>No</td></tr>
+    </tbody></table>
+  </div>
+
+  <div class="gform-table-wrap">
+    <div class="gform-table-head"><div class="gform-table-title">Form 3 — Coaching Session Log</div><div class="gform-table-sub">Job Placement Manager · One entry per session</div></div>
+    <table style="padding:0 16px 16px"><thead><tr><th>#</th><th>Question Title</th><th>Question Type</th><th>Required?</th></tr></thead><tbody>
+      <tr><td>1</td><td>Client Name</td><td>Short answer</td><td>Yes</td></tr>
+      <tr><td>2</td><td>Session Date</td><td>Date</td><td>Yes</td></tr>
+      <tr><td>3</td><td>Session Type</td><td>Dropdown — Initial Assessment / Goal Setting / Career Exploration / Job Search Strategy / Application Support / Interview Prep / Barrier Navigation / Check-In</td><td>Yes</td></tr>
+      <tr><td>4</td><td>Duration in Minutes</td><td>Short answer</td><td>Yes</td></tr>
+      <tr><td>5</td><td>Session Notes</td><td>Paragraph</td><td>Yes</td></tr>
+      <tr><td>6</td><td>Action Items and Next Steps</td><td>Paragraph</td><td>Yes</td></tr>
+      <tr><td>7</td><td>Next Session Date</td><td>Date</td><td>No</td></tr>
+      <tr><td>8</td><td>Barriers Identified</td><td>Dropdown — None / Transportation / Childcare / Housing / Digital Access / Work History Gaps / Multiple Barriers</td><td>No</td></tr>
+      <tr><td>9</td><td>Client Status</td><td>Dropdown — Active On Track / Active Needs Support / Interviewing / Placed / Disengaged / On Hold</td><td>Yes</td></tr>
+      <tr><td>10</td><td>Follow-Up Needed?</td><td>Dropdown — No / Yes within 48 hrs / Yes within 1 week</td><td>Yes</td></tr>
+    </tbody></table>
+  </div>
+
+  <div class="gform-table-wrap">
+    <div class="gform-table-head"><div class="gform-table-title">Form 4 — Workshop and Training Log</div><div class="gform-table-sub">Job Placement Manager · Resume, interview, employer panels</div></div>
+    <table style="padding:0 16px 16px"><thead><tr><th>#</th><th>Question Title</th><th>Question Type</th><th>Required?</th></tr></thead><tbody>
+      <tr><td>1</td><td>Workshop Name</td><td>Short answer</td><td>Yes</td></tr>
+      <tr><td>2</td><td>Date</td><td>Date</td><td>Yes</td></tr>
+      <tr><td>3</td><td>Workshop Type</td><td>Dropdown — Resume Building / Mock Interview / Employer Panel / LinkedIn Digital Presence / Professional Dress / Combined</td><td>Yes</td></tr>
+      <tr><td>4</td><td>Number of Participants</td><td>Short answer</td><td>Yes</td></tr>
+      <tr><td>5</td><td>Facilitator Name</td><td>Short answer</td><td>Yes</td></tr>
+      <tr><td>6</td><td>Satisfaction Score 1 to 5</td><td>Dropdown — 5 Excellent / 4 Good / 3 Average / 2 Below Average / 1 Poor</td><td>Yes</td></tr>
+      <tr><td>7</td><td>Certificates Issued?</td><td>Dropdown — Yes / No</td><td>Yes</td></tr>
+      <tr><td>8</td><td>Employer Involved?</td><td>Dropdown — Yes / No</td><td>Yes</td></tr>
+      <tr><td>9</td><td>Key Outcomes</td><td>Paragraph</td><td>Yes</td></tr>
+      <tr><td>10</td><td>Location</td><td>Short answer</td><td>No</td></tr>
+    </tbody></table>
+  </div>
+
+  <div class="gform-table-wrap">
+    <div class="gform-table-head"><div class="gform-table-title">Form 5 — Daily Activity Log</div><div class="gform-table-sub">Both managers · At least one entry per workday</div></div>
+    <table style="padding:0 16px 16px"><thead><tr><th>#</th><th>Question Title</th><th>Question Type</th><th>Required?</th></tr></thead><tbody>
+      <tr><td>1</td><td>Staff Member Name</td><td>Short answer</td><td>Yes</td></tr>
+      <tr><td>2</td><td>Date</td><td>Date</td><td>Yes</td></tr>
+      <tr><td>3</td><td>Department or Program</td><td>Dropdown — AmeriCorps Program / Job Placement / 1:1 Coaching / Talent Navigator / Resume and Interview / Partnerships / Financial Stability / Administration</td><td>Yes</td></tr>
+      <tr><td>4</td><td>Activity Type</td><td>Dropdown — Client Meeting / Group Session / Data Entry / Employer Outreach / Compliance Documentation / Internal Meeting / Community Event / Site Visit / Other</td><td>Yes</td></tr>
+      <tr><td>5</td><td>Description</td><td>Paragraph</td><td>Yes</td></tr>
+      <tr><td>6</td><td>Outcome or Result</td><td>Paragraph</td><td>Yes</td></tr>
+      <tr><td>7</td><td>Follow-Up Needed?</td><td>Dropdown — No / Yes / Done</td><td>Yes</td></tr>
+      <tr><td>8</td><td>Status</td><td>Dropdown — Complete / In Progress / Pending / Cancelled</td><td>Yes</td></tr>
+    </tbody></table>
+  </div>
+</div>
+
+</main>
+
+<script>
+document.getElementById('liveclock').textContent = new Date().toLocaleDateString('en-US',{weekday:'short',month:'long',day:'numeric',year:'numeric'});
+
+function tab(id, btn) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+const actLog = [
+  {date:'Apr 4',staff:'Workforce Mgr',prog:'AmeriCorps',act:'Monthly hour review — 12 members. 3 flagged at risk.',status:'complete'},
+  {date:'Apr 3',staff:'Placement Mgr',prog:'Job Placement',act:'UAB Health call — 2 open positions confirmed for clients.',status:'complete'},
+  {date:'Apr 2',staff:'Placement Mgr',prog:'Cohorts',act:'Cohort 5A Module 3 — Job Applications. 16 attended.',status:'complete'},
+  {date:'Apr 1',staff:'Placement Mgr',prog:'Resume',act:'Resume Bootcamp #7 — 14 participants, 5-star average.',status:'complete'},
+  {date:'Mar 31',staff:'Placement Mgr',prog:'Coaching',act:'Six 1:1 sessions. Michael D. flagged for re-engagement.',status:'pending'},
+  {date:'Mar 28',staff:'Placement Mgr',prog:'Job Placement',act:'Alicia M. placed at UAB Health — $18/hr, full benefits.',status:'complete'},
+];
+const sc = {complete:'pill-green',pending:'pill-amber'};
+const ab = document.getElementById('activity-body');
+actLog.forEach(e => {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td>${e.date}</td><td>${e.staff}</td><td>${e.prog}</td><td>${e.act}</td><td><span class="pill ${sc[e.status]}">${e.status}</span></td>`;
+  ab.appendChild(tr);
+});
+
+function save(btn, key) {
+  const orig = btn.textContent;
+  btn.textContent = 'Saving...';
+  btn.disabled = true;
+  setTimeout(() => {
+    btn.textContent = orig;
+    btn.disabled = false;
+    const t = document.getElementById('toast-'+key);
+    t.style.display = 'block';
+    setTimeout(() => t.style.display='none', 4000);
+  }, 700);
+}
+
+const mkChart = (id, cfg) => new Chart(document.getElementById(id), cfg);
+const noLegend = { plugins: { legend: { display: false } } };
+const opts = (extra={}) => ({ responsive:true, maintainAspectRatio:false, ...noLegend, ...extra });
+
+mkChart('c-sector', { type:'doughnut', data:{
+  labels:['Healthcare','Financial Svcs','Logistics','Gov/Nonprofit','Other'],
+  datasets:[{data:[18,12,8,5,4], backgroundColor:['#185FA5','#3B6D11','#BA7517','#534AB7','#888780'], borderWidth:0}]
+}, options: opts({cutout:'58%'}) });
+
+mkChart('c-goals', { type:'bar', data:{
+  labels:['Placements','Clients','AC Hours','Retention','Workshops','Employers'],
+  datasets:[{
+    data:[78,85,70,104,70,76],
+    backgroundColor:['#BA7517','#3B6D11','#BA7517','#3B6D11','#BA7517','#185FA5'],
+    borderRadius:4, borderSkipped:false
+  }]
+}, options: opts({ indexAxis:'y', scales:{
+  x:{min:0,max:110,ticks:{callback:v=>v+'%',font:{size:11}},grid:{color:'rgba(0,0,0,.07)'}},
+  y:{ticks:{font:{size:11}},grid:{display:false}}
+}}) });
+
+mkChart('c-trend', { type:'line', data:{
+  labels:['Sep','Oct','Nov','Dec','Jan','Feb','Mar'],
+  datasets:[
+    {label:'Placements',data:[3,5,6,7,8,9,9],borderColor:'#185FA5',backgroundColor:'rgba(24,95,165,.07)',tension:.4,fill:true,pointRadius:4,pointBackgroundColor:'#185FA5'},
+    {label:'Hours ÷100',data:[12,18,20,22,24,26,22],borderColor:'#3B6D11',backgroundColor:'rgba(59,109,17,.05)',tension:.4,fill:true,pointRadius:4,pointBackgroundColor:'#3B6D11'}
+  ]
+}, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+  scales:{x:{ticks:{font:{size:11}},grid:{color:'rgba(0,0,0,.06)'}}, y:{ticks:{font:{size:11}},grid:{color:'rgba(0,0,0,.06)'}}} }
+});
+
+const mnames=['Nia R.','Marcus T.','Destiny W.','Jalen B.','Tamika O.'];
+const mpct=[73,52,69,44,81];
+mkChart('c-member-pct', { type:'bar', data:{
+  labels:mnames,
+  datasets:[{data:mpct, backgroundColor:mpct.map(v=>v<60?'#c0392b':v<75?'#d4a843':'#27ae60'), borderRadius:4, borderSkipped:false}]
+}, options:opts({indexAxis:'y', scales:{
+  x:{min:0,max:100,ticks:{callback:v=>v+'%',font:{size:11}},grid:{color:'rgba(0,0,0,.07)'}},
+  y:{ticks:{font:{size:11}},grid:{display:false}}
+}}) });
+
+mkChart('c-cohort-ov', { type:'bar', data:{
+  labels:['C5-A','C5-B','C4-A','C4-B','C3-A','C3-B'],
+  datasets:[
+    {label:'Enrolled',data:[18,14,16,14,15,12],backgroundColor:'#185FA5',borderRadius:3},
+    {label:'Placed',data:[4,2,11,9,8,7],backgroundColor:'#3B6D11',borderRadius:3}
+  ]
+}, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+  scales:{x:{ticks:{font:{size:11}},grid:{display:false}},y:{ticks:{font:{size:11}},grid:{color:'rgba(0,0,0,.07)'}}}
+}});
+
+mkChart('c-member-detail', { type:'bar', data:{
+  labels:mnames,
+  datasets:[
+    {label:'Hours logged',data:[1240,890,1180,740,1380],backgroundColor:mpct.map(v=>v<60?'#c0392b':v<75?'#d4a843':'#185FA5'),borderRadius:4},
+    {label:'Remaining',data:[460,810,520,960,320],backgroundColor:'rgba(0,0,0,.06)',borderRadius:4}
+  ]
+}, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+  scales:{x:{stacked:true,max:1700,ticks:{font:{size:11}},grid:{color:'rgba(0,0,0,.07)'}},y:{stacked:true,ticks:{font:{size:11}},grid:{display:false}}}
+}});
+
+mkChart('c-svc-split', { type:'bar', data:{
+  labels:mnames,
+  datasets:[
+    {label:'Direct Svc',data:[84,81,86,79,88],backgroundColor:'#185FA5',borderRadius:3},
+    {label:'Training',data:[16,19,14,21,12],backgroundColor:'#d4a843',borderRadius:3}
+  ]
+}, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+  scales:{x:{stacked:true,ticks:{font:{size:10}},grid:{display:false}},y:{stacked:true,max:100,ticks:{callback:v=>v+'%',font:{size:11}},grid:{color:'rgba(0,0,0,.07)'}}}
+}});
+
+mkChart('c-evals', { type:'doughnut', data:{
+  labels:['Done','Pending','Overdue'],
+  datasets:[{data:[4,6,2], backgroundColor:['#3B6D11','#d4a843','#c0392b'], borderWidth:0}]
+}, options:opts({cutout:'55%'}) });
+
+mkChart('c-pathway', { type:'bar', data:{
+  labels:['1:1 Coaching','Talent Nav.','Resume WS','Job Fair','Direct Ref.'],
+  datasets:[{data:[18,12,9,5,3],backgroundColor:'#185FA5',borderRadius:4}]
+}, options:opts({scales:{x:{ticks:{font:{size:11}},grid:{display:false}},y:{ticks:{font:{size:11}},grid:{color:'rgba(0,0,0,.07)'}}}}) });
+
+mkChart('c-retention', { type:'doughnut', data:{
+  labels:['90-Day ✓','30-Day ✓','New/Pending','Left Role'],
+  datasets:[{data:[22,10,11,4],backgroundColor:['#27ae60','#185FA5','#d4a843','#c0392b'],borderWidth:0}]
+}, options:opts({cutout:'55%'}) });
+
+mkChart('c-sector2', { type:'doughnut', data:{
+  labels:['Healthcare','Financial Svcs','Logistics','Gov/Nonprofit','Other'],
+  datasets:[{data:[18,12,8,5,4],backgroundColor:['#185FA5','#3B6D11','#BA7517','#534AB7','#888780'],borderWidth:0}]
+}, options:opts({cutout:'55%'}) });
+
+mkChart('c-coaching-status', { type:'doughnut', data:{
+  labels:['Active On Track','Interviewing','Needs Support','Placed','Disengaged'],
+  datasets:[{data:[14,6,7,5,2],backgroundColor:['#185FA5','#3B6D11','#d4a843','#27ae60','#c0392b'],borderWidth:0}]
+}, options:opts({cutout:'55%'}) });
+
+mkChart('c-cohort-detail', { type:'bar', data:{
+  labels:['C5-A','C5-B','C4-A','C4-B'],
+  datasets:[
+    {label:'Enrolled',data:[18,14,16,14],backgroundColor:'#185FA5',borderRadius:3},
+    {label:'Completed',data:[16,13,13,12],backgroundColor:'#3B6D11',borderRadius:3},
+    {label:'Dropped',data:[2,1,3,2],backgroundColor:'#c0392b',borderRadius:3}
+  ]
+}, options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+  scales:{x:{ticks:{font:{size:11}},grid:{display:false}},y:{ticks:{font:{size:11}},grid:{color:'rgba(0,0,0,.07)'}}}
+}});
+
+mkChart('c-workshops', { type:'bar', data:{
+  labels:['Boot #6','Prof Dress','Boot #7','Intrvw #3','LinkedIn','Intrvw #4','Panel #3'],
+  datasets:[{data:[7,16,14,8,9,11,22],backgroundColor:'#BA7517',borderRadius:4}]
+}, options:opts({scales:{x:{ticks:{font:{size:10},maxRotation:35},grid:{display:false}},y:{ticks:{font:{size:11}},grid:{color:'rgba(0,0,0,.07)'}}}}) });
+
+mkChart('c-wtypes', { type:'doughnut', data:{
+  labels:['Resume Building','Mock Interview','Employer Panel','LinkedIn','Prof Dress'],
+  datasets:[{data:[2,2,1,1,1],backgroundColor:['#185FA5','#3B6D11','#BA7517','#534AB7','#888780'],borderWidth:0}]
+}, options:opts({cutout:'55%'}) });
+</script>
+</body>
+</html>
